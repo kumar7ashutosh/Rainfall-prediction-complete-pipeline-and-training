@@ -125,7 +125,7 @@ elif mode.startswith("🏙️"):
             st.session_state.lat = float(loc.latitude)
             st.session_state.lon = float(loc.longitude)
             st.sidebar.success(f"📍 {city_name}: ({loc.latitude:.4f}, {loc.longitude:.4f})")
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.sidebar.warning("City not found. Try a more specific name.")
 
@@ -141,7 +141,7 @@ if mode.startswith("📐"):
     lon = st.sidebar.number_input("Longitude:", value=88.3639, format="%.6f")
 if st.sidebar.button("Set Location"):
     st.session_state.lat, st.session_state.lon = lat, lon
-    st.experimental_rerun()
+    st.rerun()
 
 # ===============================
 
