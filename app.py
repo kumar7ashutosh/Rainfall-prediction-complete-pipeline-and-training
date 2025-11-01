@@ -119,15 +119,19 @@ elif mode.startswith("🏙️"):
 
     if city_name.strip():
         with st.spinner("Geocoding city..."):
-            loc = geocode(city_name.strip())
+            try:
+                loc = geocode(city_name.strip(), timeout=10)
+            except Exception as e:
+                st.sidebar.error(f"❌ Geocoding failed: {e}")
+                loc = None
 
-        if loc:
+        if loc is not None:
             st.session_state.lat = float(loc.latitude)
             st.session_state.lon = float(loc.longitude)
             st.sidebar.success(f"📍 {city_name}: ({loc.latitude:.4f}, {loc.longitude:.4f})")
             st.rerun()
         else:
-            st.sidebar.warning("City not found. Try a more specific name.")
+            st.sidebar.warning("⚠️ City not found. Try again or check your network.")
 
 # ===============================
 
