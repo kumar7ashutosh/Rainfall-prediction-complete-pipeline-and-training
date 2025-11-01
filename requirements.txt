@@ -1,5 +1,13 @@
 streamlit
+meteostat
+streamlit-autorefresh
 pandas
-joblib
-scikit-learn
 numpy
+joblib
+certifi
+scikit-learn
+xgboost
+catboost
+geopy
+streamlit-folium
+folium
