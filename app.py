@@ -1,9 +1,7 @@
-
 import ssl, certifi, warnings
 warnings.filterwarnings("ignore")
 
-# ---- Fix SSL errors (cert verification) ----
-
+# ---- Fix SSL errors ----
 ssl._create_default_https_context = lambda: ssl.create_default_context(cafile=certifi.where())
 
 import streamlit as st
@@ -13,39 +11,24 @@ import joblib
 from datetime import datetime, timedelta
 from meteostat import Point, Hourly
 from streamlit_autorefresh import st_autorefresh
-from geopy.geocoders import Nominatim
-from geopy.extra.rate_limiter import RateLimiter
 from streamlit_folium import st_folium
 import folium
 
 # ===============================
-
 # Page Setup
-
 # ===============================
-
 st.set_page_config(page_title="Realtime Rainfall Predictor", page_icon="🌧️", layout="centered")
 st.title("🌦️ Realtime Rainfall Prediction Dashboard")
 st.caption("Fetch live weather data from any location and predict rainfall in real time.")
 
 # ===============================
-
 # Cached Loaders
-
 # ===============================
-
 @st.cache_resource(show_spinner=False)
 def load_artifacts():
     model = joblib.load("best_model.pkl")
     pipeline = joblib.load("pipeline.pkl")
     return model, pipeline
-
-@st.cache_resource(show_spinner=False)
-def get_geolocator():
-    geolocator = Nominatim(user_agent="rainfall_app")
-    return RateLimiter(geolocator.geocode, min_delay_seconds=1, swallow_exceptions=True)
-
-# Load model/pipeline
 
 try:
     model, pipeline = load_artifacts()
@@ -54,29 +37,17 @@ except Exception as e:
     st.stop()
 
 # ===============================
-
 # Auto Refresh every 10 minutes
-
 # ===============================
-
 st_autorefresh(interval=10 * 60 * 1000, key="auto_refresh")
 
 # ===============================
-
 # Sidebar: Location Selection
-
 # ===============================
+st.sidebar.header("🗺️ Select Location on Map")
+st.sidebar.write("Click anywhere on the map to fetch live data for that location.")
 
-st.sidebar.header("📍 Choose Location Input Mode")
-
-mode = st.sidebar.radio(
-"Select method:",
-["🗺️ Map (click anywhere)", "🏙️ Type a city name", "📐 Manual coordinates"],
-index=0
-)
-
-# Persistent state for coordinates
-
+# Persistent state
 if "lat" not in st.session_state:
     st.session_state.lat = None
 if "lon" not in st.session_state:
@@ -86,73 +57,24 @@ lat = st.session_state.lat
 lon = st.session_state.lon
 
 # ===============================
-
-# Mode 1 — Map Click
-
+# Map Click Mode Only
 # ===============================
-map_data = None
-if mode.startswith("🗺️"):
-    st.sidebar.write("Click anywhere on the map to select a location.")
-    default_lat, default_lon = 22.5726, 88.3639
-    m = folium.Map(location=[default_lat, default_lon], zoom_start=5)
-    folium.LatLngPopup().add_to(m)
-    map_data = st_folium(m, width=700, height=500)
+default_lat, default_lon = 22.5726, 88.3639
+m = folium.Map(location=[default_lat, default_lon], zoom_start=5)
+folium.LatLngPopup().add_to(m)
+map_data = st_folium(m, width=700, height=500)
 
 if map_data and map_data.get("last_clicked"):
     clicked = map_data["last_clicked"]
     new_lat, new_lon = clicked["lat"], clicked["lng"]
 
-    # Only rerun if new point is different
     if new_lat != st.session_state.lat or new_lon != st.session_state.lon:
         st.session_state.lat, st.session_state.lon = new_lat, new_lon
         st.rerun()
 
 # ===============================
-
-# Mode 2 — City Name Geocoding
-
-# ===============================
-
-elif mode.startswith("🏙️"):
-    geocode = get_geolocator()
-    city_name = st.sidebar.text_input("Enter any city name:")
-
-    if city_name.strip():
-        with st.spinner("Geocoding city..."):
-            try:
-                loc = geocode(city_name.strip(), timeout=10)
-            except Exception as e:
-                st.sidebar.error(f"❌ Geocoding failed: {e}")
-                loc = None
-
-        if loc is not None:
-            st.session_state.lat = float(loc.latitude)
-            st.session_state.lon = float(loc.longitude)
-            st.sidebar.success(f"📍 {city_name}: ({loc.latitude:.4f}, {loc.longitude:.4f})")
-            st.rerun()
-        else:
-            st.sidebar.warning("⚠️ City not found. Try again or check your network.")
-
-# ===============================
-
-# Mode 3 — Manual Coordinates
-
-# ===============================
-
-
-if mode.startswith("📐"):
-    lat = st.sidebar.number_input("Latitude:", value=22.5726, format="%.6f")
-    lon = st.sidebar.number_input("Longitude:", value=88.3639, format="%.6f")
-if st.sidebar.button("Set Location"):
-    st.session_state.lat, st.session_state.lon = lat, lon
-    st.rerun()
-
-# ===============================
-
 # Fetch Live Weather + Predict
-
 # ===============================
-
 lat = st.session_state.lat
 lon = st.session_state.lon
 
@@ -167,11 +89,7 @@ if lat is not None and lon is not None:
             st.warning("⚠️ No live data available for this location right now.")
         else:
             latest = data.tail(1).reset_index()
-            fetch_time = (
-                latest["time"].iloc[0]
-                if "time" in latest.columns
-                else latest.index[0]
-            )
+            fetch_time = latest["time"].iloc[0] if "time" in latest.columns else latest.index[0]
 
             st.success(f"✅ Live data fetched for ({lat:.4f}, {lon:.4f}) at {fetch_time:%Y-%m-%d %H:%M UTC}")
             st.dataframe(latest)
@@ -220,13 +138,10 @@ if lat is not None and lon is not None:
         st.error(f"Error fetching data: {e}")
 
 else:
-    st.info("👆 Select a location using the map, city name, or coordinates to fetch live data.")
+    st.info("👆 Click on the map to select a location and fetch live data.")
 
 # ===============================
-
 # Footer
-
 # ===============================
-
 st.markdown("---")
 st.caption("Built with ❤️ by ashutosh • Powered by Meteostat, Streamlit & your trained model.")
