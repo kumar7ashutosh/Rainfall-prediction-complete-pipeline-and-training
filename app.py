@@ -225,4 +225,4 @@ else:
 # ===============================
 
 st.markdown("---")
-st.caption("Built with ❤️ by Sudipto • Powered by Meteostat, Streamlit & your trained model.")
+st.caption("Built with ❤️ by ashutosh • Powered by Meteostat, Streamlit & your trained model.")
