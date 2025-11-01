@@ -90,7 +90,7 @@ lon = st.session_state.lon
 # Mode 1 — Map Click
 
 # ===============================
-
+map_data = None
 if mode.startswith("🗺️"):
     st.sidebar.write("Click anywhere on the map to select a location.")
     default_lat, default_lon = 22.5726, 88.3639
